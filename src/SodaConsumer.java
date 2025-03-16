@@ -1,31 +1,29 @@
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
 
 public class SodaConsumer implements Runnable{
-    List<Soda> sodaList;
-    public SodaConsumer(List<Soda> sodaList) {
-        this.sodaList = sodaList;
+    BlockingQueue<Soda> sodaQueue;
+    Buffer buffer;
+    Soda soda;
+    public SodaConsumer(Buffer buffer, BlockingQueue<Soda> sodaQueue) {
+        this.buffer = buffer;
+        this.sodaQueue = sodaQueue;
     }
     @Override
     public void run() {
+        System.out.println("Bart started to pull Lisa's hair");
         consumeSoda();
     }
     private void consumeSoda() {
             while(true){
-                synchronized (sodaList) {
-                try{
-                    sodaList.wait();
+
+                try {
+                    soda = buffer.getSoda();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
                 }
-                catch(InterruptedException e){
-                    e.printStackTrace();
-                }
-                while (sodaList.size() > 9) {
-                    for(int i = 9; i >= 0; i--) {
-                        System.out.println("Bart & Lisa consuming " + sodaList.get(i) + " " + i);
-                        sodaList.remove(i);
-                    }
-                }
+                System.out.println("Bart & Lisa consuming " + soda);
             }
-        }
     }
 }
 

@@ -1,34 +1,29 @@
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
 
 public class BeerConsumer implements Runnable {
+    BlockingQueue<Beer> beerQueue;
+    Buffer buffer;
+    Beer beer;
 
-  List<Beer> beerList;
-  public BeerConsumer(List<Beer> beerList) {
-      this.beerList = beerList;
+  public BeerConsumer(Buffer buffer, BlockingQueue<Beer> beerQueue) {
+      this.buffer = buffer;
+      this.beerQueue = beerQueue;
   }
     @Override
     public void run() {
-        consumeBeer();
+      System.out.println("Homer started drinking");
+      consumeBeer();
     }
     private void consumeBeer() {
         while(true){
-            synchronized (beerList) {
-            try{
-                beerList.wait();
+            try {
+                beer = buffer.getBeer();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
-            catch(InterruptedException e){
-                e.printStackTrace();
-            }
-            while(beerList.size() > 9) {
-                for(int i = 9; i >= 0; i--) {
-                    System.out.println("Homer consuming " + beerList.get(i) + " " + i + " at Moe's together with Lenny and Carl");
-                    beerList.remove(i);
-//                for (Beer beer : beerList) {
-//                    System.out.println("Homer consuming " + beer + " at Moe's together with Carl and Lenny");
-//                    beerList.remove(beer);
-               }
-            }
-          }
+            System.out.println("Homer consuming " + beer +  " " + " at Moe's together with Lenny and Carl");
         }
-    }
+  }
 }
+

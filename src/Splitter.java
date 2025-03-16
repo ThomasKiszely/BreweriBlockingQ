@@ -1,14 +1,18 @@
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
 
 public class Splitter implements Runnable{
-    List<Beer> beerList;
-    List<Soda> sodaList;
-    List<Drink> drinkList;
+    BlockingQueue<Drink> drinkQueue;
+    BlockingQueue<Soda> sodaQueue;
+    BlockingQueue<Beer> beerQueue;
+    Buffer buffer;
+    Drink drink;
 
-    public Splitter(List<Beer> beerList, List<Soda> sodaList, List<Drink> drinkList) {
-        this.beerList = beerList;
-        this.sodaList = sodaList;
-        this.drinkList = drinkList;
+    public Splitter(Buffer buffer, BlockingQueue<Beer> beerQueue, BlockingQueue<Soda> sodaQueue, BlockingQueue<Drink> drinkQueue) {
+        this.buffer = buffer;
+        this.beerQueue = beerQueue;
+        this.sodaQueue = sodaQueue;
+        this.drinkQueue = drinkQueue;
     }
 
     @Override
@@ -16,42 +20,28 @@ public class Splitter implements Runnable{
         System.out.println("Splitter started");
         splitBeerAndSoda();
     }
-    private synchronized void splitBeerAndSoda() {
+    private void splitBeerAndSoda() {
         while(true){
-            synchronized (drinkList){
-                for (int i = 9; i >= 0; i--) {
-                    if (drinkList.isEmpty()){
-                        System.out.println("No more drinks found");
-                        try {
-                            drinkList.wait();
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-                    if (drinkList.get(i) instanceof Soda) {
-                        sodaList.add((Soda) drinkList.get(i));
-                        System.out.println("Soda added");
-                        System.out.println(drinkList.size());
-                        drinkList.remove(drinkList.get(i));
-                        if (sodaList.size() == 10){
-                            synchronized (sodaList){
-                                sodaList.notify();
-                            }
-                        }
-                    }
-                    else if (drinkList.get(i) instanceof Beer) {
-                        beerList.add((Beer)(drinkList.get(i)));
-                        System.out.println("Beer added");
-                        System.out.println(drinkList.size());
-                        drinkList.remove(drinkList.get(i));
-                        if (beerList.size()==10){
-                            synchronized (beerList){
-                                beerList.notify();
-                            }
-                        }
-                    }
+            try {
+                drink = buffer.getDrink();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            if (drink instanceof Soda) {
+                try {
+                    buffer.addSoda((Soda) drink);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
                 }
-                drinkList.notify();
+                System.out.println("Soda added " + drink);
+            }
+            else if (drink instanceof Beer) {
+                try {
+                    buffer.addBeer((Beer) drink);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                System.out.println("Beer added " + drink);
             }
         }
     }

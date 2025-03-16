@@ -1,46 +1,54 @@
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.BlockingQueue;
 
 public class Producer implements Runnable {
-    List<Drink> drinkList;
+    BlockingQueue<Drink> drinkQueue;
+    Buffer buffer;
 
-    public Producer(List<Drink> drinkList) {
-        this.drinkList = drinkList;
+    public Producer(Buffer buffer, BlockingQueue<Drink> drinkQueue) {
+        this.buffer = buffer;
+        this.drinkQueue = drinkQueue;
     }
 
     @Override
     public void run() {
+        System.out.println("Producer started");
         produce();
     }
 
     public synchronized void produce() {
         Random random = new Random();
         while(true){
-            synchronized (drinkList) {
                 for (int i = 0; i < 10; i++) {
+                    try {
+                    Thread.sleep(1000);
+                }
+                catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
                     int choice = random.nextInt(2);
-                    if (drinkList.size() == 10) {
-                        System.out.println("Drink queue is full - notifying");
-                        drinkList.notify();
+                    if (choice == 0) {
                         try {
-                            drinkList.wait();
-                            Thread.sleep(100);
+                            buffer.addDrink(new Beer("Duff Beer no " + i));
                         } catch (InterruptedException e) {
                             throw new RuntimeException(e);
                         }
-                    }
-                    if (choice == 0) {
-                        drinkList.add(new Beer("Duff Beer no " + i));
-                        System.out.println("Duff Beer produced");
+                        System.out.println("Duff Beer " + i +" produced");
                     }
                     if (choice == 1) {
-                        drinkList.add(new Soda("Buzz Cola no " + i));
-                        System.out.println("Buzz Cola produced");
+                        try {
+                            buffer.addDrink(new Soda("Buzz Cola no " + i));
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                        System.out.println("Buzz Cola " + i + " produced");
+
                     }
                 }
             }
         }
-    }
+
 }
 
 
